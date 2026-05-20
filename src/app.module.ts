@@ -1,12 +1,30 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { LoggerModule } from 'nestjs-pino';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+    LoggerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        pinoHttp: {
+          level: configService.get<string>('LOG_LEVEL', 'info'),
+          transport:
+            configService.get<string>('NODE_ENV') !== 'production'
+              ? {
+                  target: 'pino-pretty',
+                  options: {
+                    singleLine: true,
+                  },
+                }
+              : undefined,
+        },
+      }),
     }),
   ],
   controllers: [AppController],
