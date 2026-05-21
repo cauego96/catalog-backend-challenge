@@ -5,6 +5,7 @@ import { DatabaseModule } from './shared/infrastructure/database/typeorm.module'
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ProductsModule } from './modules/products/products.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { AuditModule } from './modules/audit/audit.module';
     CategoriesModule,
     ProductsModule,
     AuditModule,
+    HealthModule,
   ],
 })
 export class AppModule {}
