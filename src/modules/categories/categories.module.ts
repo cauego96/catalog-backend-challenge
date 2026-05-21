@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { MessagingModule } from '../../shared/infrastructure/messaging/messaging.module';
 import { CATEGORY_REPOSITORY } from './domain/repositories/category.repository';
 import { CategoryOrmEntity } from './infrastructure/typeorm/entities/category.orm-entity';
 import { CategoryTypeormRepository } from './infrastructure/typeorm/repositories/category-typeorm.repository';
@@ -9,7 +10,7 @@ import { ListCategoriesUseCase } from './application/use-cases/list-categories.u
 import { CategoriesController } from './presentation/controllers/categories.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([CategoryOrmEntity])],
+  imports: [MessagingModule, TypeOrmModule.forFeature([CategoryOrmEntity])],
   controllers: [CategoriesController],
   providers: [
     CreateCategoryUseCase,

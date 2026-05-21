@@ -1,4 +1,9 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import {
+  DOMAIN_EVENT_PUBLISHER,
+  DomainEventPublisher,
+} from '../../../../shared/domain/events/domain-event-publisher';
 import {
   CATEGORY_REPOSITORY,
   CategoryRepository,
@@ -16,6 +21,9 @@ export class RemoveCategoryFromProductUseCase {
 
     @Inject(CATEGORY_REPOSITORY)
     private readonly categoryRepository: CategoryRepository,
+
+    @Inject(DOMAIN_EVENT_PUBLISHER)
+    private readonly eventPublisher: DomainEventPublisher,
   ) {}
 
   async execute(id: string, categoryId: string) {
@@ -33,6 +41,20 @@ export class RemoveCategoryFromProductUseCase {
 
     product.removeCategory(categoryId);
 
-    return this.productRepository.save(product);
+    const saved = await this.productRepository.save(product);
+
+    await this.eventPublisher.publish({
+      eventId: randomUUID(),
+      eventType: 'PRODUCT_CATEGORY_REMOVED',
+      aggregateType: 'Product',
+      aggregateId: saved.id,
+      occurredAt: new Date().toISOString(),
+      payload: {
+        productId: saved.id,
+        categoryId,
+      },
+    });
+
+    return saved;
   }
 }

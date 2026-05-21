@@ -4,6 +4,11 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import {
+  DOMAIN_EVENT_PUBLISHER,
+  DomainEventPublisher,
+} from '../../../../shared/domain/events/domain-event-publisher';
 import {
   CATEGORY_REPOSITORY,
   CategoryRepository,
@@ -14,6 +19,9 @@ export class UpdateCategoryUseCase {
   constructor(
     @Inject(CATEGORY_REPOSITORY)
     private readonly categoryRepository: CategoryRepository,
+
+    @Inject(DOMAIN_EVENT_PUBLISHER)
+    private readonly eventPublisher: DomainEventPublisher,
   ) {}
 
   async execute(
@@ -42,8 +50,28 @@ export class UpdateCategoryUseCase {
       }
     }
 
+    const previousName = category.name;
+    const previousParentId = category.parentId;
+
     category.update(input);
 
-    return this.categoryRepository.save(category);
+    const saved = await this.categoryRepository.save(category);
+
+    await this.eventPublisher.publish({
+      eventId: randomUUID(),
+      eventType: 'CATEGORY_UPDATED',
+      aggregateType: 'Category',
+      aggregateId: saved.id,
+      occurredAt: new Date().toISOString(),
+      payload: {
+        categoryId: saved.id,
+        previousName,
+        newName: saved.name,
+        previousParentId,
+        newParentId: saved.parentId,
+      },
+    });
+
+    return saved;
   }
 }
