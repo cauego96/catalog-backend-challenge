@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
   Unique,
@@ -15,12 +16,13 @@ export class ProductAttributeOrmEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'product_id' })
+  @Column({ name: 'product_id', type: 'uuid' })
   productId: string;
 
   @ManyToOne(() => ProductOrmEntity, (product) => product.attributes, {
     onDelete: 'CASCADE',
   })
+  @JoinColumn({ name: 'product_id' })
   product: ProductOrmEntity;
 
   @Column()
