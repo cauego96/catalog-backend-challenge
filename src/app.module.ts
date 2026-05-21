@@ -6,6 +6,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { DatabaseModule } from './shared/infrastructure/database/typeorm.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ProductsModule } from './modules/products/products.module';
+import { AuditModule } from './modules/audit/audit.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { ProductsModule } from './modules/products/products.module';
     DatabaseModule,
     CategoriesModule,
     ProductsModule,
+    AuditModule,
   ],
   controllers: [AppController],
   providers: [AppService],

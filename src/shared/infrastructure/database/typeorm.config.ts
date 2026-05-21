@@ -1,16 +1,18 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { DataSourceOptions } from 'typeorm';
+import { join } from 'path';
 import { CategoryOrmEntity } from '../../../modules/categories/infrastructure/typeorm/entities/category.orm-entity';
 import { ProductAttributeOrmEntity } from '../../../modules/products/infrastructure/typeorm/entities/product-attribute.orm-entity';
 import { ProductCategoryOrmEntity } from '../../../modules/products/infrastructure/typeorm/entities/product-category.orm-entity';
 import { ProductOrmEntity } from '../../../modules/products/infrastructure/typeorm/entities/product.orm-entity';
-import { join } from 'path';
+import { AuditLogOrmEntity } from '../../../modules/audit/infrastructure/typeorm/entities/audit-log.orm-entity';
 
 export const databaseEntities = [
   CategoryOrmEntity,
   ProductOrmEntity,
   ProductAttributeOrmEntity,
   ProductCategoryOrmEntity,
+  AuditLogOrmEntity,
 ];
 
 export function buildDatabaseOptions(
