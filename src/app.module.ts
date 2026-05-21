@@ -1,7 +1,5 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { LoggerModule } from 'nestjs-pino';
 import { DatabaseModule } from './shared/infrastructure/database/typeorm.module';
 import { CategoriesModule } from './modules/categories/categories.module';
@@ -35,7 +33,5 @@ import { AuditModule } from './modules/audit/audit.module';
     ProductsModule,
     AuditModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}
