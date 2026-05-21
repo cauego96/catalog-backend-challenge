@@ -4,6 +4,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { LoggerModule } from 'nestjs-pino';
 import { DatabaseModule } from './shared/infrastructure/database/typeorm.module';
+import { CategoriesModule } from './modules/categories/categories.module';
+import { ProductsModule } from './modules/products/products.module';
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { DatabaseModule } from './shared/infrastructure/database/typeorm.module'
       }),
     }),
     DatabaseModule,
+    CategoriesModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
