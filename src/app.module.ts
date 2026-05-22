@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
+import { AppController } from './app.controller';
 import { DatabaseModule } from './shared/infrastructure/database/typeorm.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ProductsModule } from './modules/products/products.module';
@@ -35,5 +36,6 @@ import { HealthModule } from './modules/health/health.module';
     AuditModule,
     HealthModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule {}
