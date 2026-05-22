@@ -1,99 +1,403 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Catalog Backend Challenge
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API em NestJS para gerenciamento de categorias e produtos, com persistência em PostgreSQL, mensageria com RabbitMQ e trilha de auditoria assíncrona.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+O objetivo deste repositório é demonstrar capacidade de:
 
-## Description
+- tomar decisões técnicas coerentes
+- implementar uma solução funcional e bem organizada
+- justificar trade-offs de forma clara
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Visão Geral
 
-## Project setup
+A aplicação expõe uma API REST para:
+
+- criar, listar e atualizar categorias
+- criar, listar e atualizar produtos
+- adicionar e remover categorias de um produto
+- adicionar, atualizar e remover atributos de um produto
+- ativar e arquivar produtos
+
+Além do fluxo principal de catálogo, a aplicação também:
+
+- publica eventos de domínio relevantes no RabbitMQ
+- consome esses eventos em um módulo de auditoria
+- persiste logs de auditoria em banco
+- expõe um endpoint `/health` para verificar dependências críticas
+- expõe documentação Swagger em `/docs`
+
+Ao abrir `http://localhost:3000/`, a aplicação redireciona para `http://localhost:3000/docs`.
+
+## Tecnologias
+
+- Node.js
+- NestJS
+- TypeScript
+- PostgreSQL
+- TypeORM
+- RabbitMQ
+- Swagger
+- Jest
+
+## Estrutura do Projeto
+
+O projeto foi organizado por módulos de negócio e por camadas.
+
+- `src/modules/categories`
+  Contém domínio, casos de uso, controller e persistência de categorias.
+- `src/modules/products`
+  Contém domínio, casos de uso, controller e persistência de produtos.
+- `src/modules/audit`
+  Consome eventos do RabbitMQ e grava logs em `audit_logs`.
+- `src/modules/health`
+  Expõe verificações de saúde de banco, mensageria, auditoria e metadados da aplicação.
+- `src/shared`
+  Infraestrutura compartilhada de banco, HTTP e mensageria.
+
+## Decisões Arquiteturais
+
+### 1. Separação por módulos de negócio
+
+O projeto foi dividido em `categories`, `products`, `audit` e `health`. Isso ajuda a manter coesão alta e facilita evolução incremental do desafio.
+
+### 2. Domínio explícito
+
+As regras principais de negócio vivem nas entidades de domínio, principalmente:
+
+- `product.entity.ts`
+- `category.entity.ts`
+
+Exemplos de regras modeladas no domínio:
+
+- produto só pode ser ativado se tiver ao menos uma categoria
+- produto só pode ser ativado se tiver ao menos um atributo
+- produto arquivado não pode ter categorias alteradas
+- produto arquivado não pode ter atributos alterados
+- categoria não pode ser pai de si mesma
+
+Essa decisão foi tomada para evitar que regras fiquem espalhadas entre controller, service e banco.
+
+### 3. Casos de uso como camada de aplicação
+
+Cada ação relevante da API foi representada por um use case específico, por exemplo:
+
+- `CreateProductUseCase`
+- `ActivateProductUseCase`
+- `AddCategoryToProductUseCase`
+- `UpdateCategoryUseCase`
+
+Isso deixa o fluxo de negócio explícito, melhora testabilidade e reduz acoplamento entre transporte HTTP e regra de negócio.
+
+### 4. Repositórios por contrato
+
+Os módulos usam contratos de repositório no domínio e implementações TypeORM na infraestrutura. Exemplos:
+
+- `product.repository.ts`
+- `category.repository.ts`
+
+Trade-off:
+
+- vantagem: menor acoplamento da aplicação ao ORM
+- custo: mais arquivos e mapeamentos
+
+### 5. Migrations como fonte de verdade do schema
+
+O projeto usa `synchronize: false` e schema versionado por migrations.
+
+Motivação:
+
+- maior previsibilidade
+- melhor maturidade para ambiente real
+- mais controle sobre evolução de banco
+
+Trade-off:
+
+- exige disciplina maior na manutenção das migrations
+- é um pouco mais lento do que `synchronize: true` para prototipagem inicial
+
+### 6. Auditoria assíncrona desacoplada do fluxo principal
+
+A gravação da trilha de auditoria não acontece diretamente dentro dos casos de uso de catálogo. Em vez disso:
+
+1. o caso de uso publica um evento
+2. o RabbitMQ recebe esse evento em uma fila durável
+3. o módulo `audit` consome a mensagem
+4. o audit log é persistido no PostgreSQL
+
+Essa escolha reduz acoplamento entre catálogo e auditoria e modela melhor um cenário próximo de produção.
+
+## Estratégia de Mensageria e Auditoria
+
+### Publicação de eventos
+
+Os eventos são publicados por meio do contrato:
+
+- `domain-event-publisher.ts`
+
+A implementação concreta atual é:
+
+- `rabbitmq-event.publisher.ts`
+
+Os eventos publicados incluem ações como:
+
+- criação de produto
+- atualização de produto
+- ativação e arquivamento
+- inclusão e remoção de categorias
+- inclusão, atualização e remoção de atributos
+- atualização de categoria
+
+### Consumo de eventos
+
+O módulo de auditoria possui um consumidor dedicado:
+
+- `audit-events.consumer.ts`
+
+Esse consumidor:
+
+- conecta no RabbitMQ
+- consome a fila `audit.events`
+- persiste os eventos recebidos em `audit_logs`
+- faz `ack` quando a gravação ocorre com sucesso
+- faz `nack` sem requeue em caso de falha de processamento
+
+### Motivações da abordagem
+
+- desacoplar auditoria do tempo de resposta da API
+- registrar eventos relevantes para rastreabilidade
+- permitir futura integração com outros consumidores
+
+### Trade-offs
+
+- a consistência entre catálogo e auditoria é eventual, não imediata
+- uma indisponibilidade do RabbitMQ afeta a publicação de eventos
+- o fluxo ganha robustez e extensibilidade, mas também mais moving parts
+
+## Endpoint de Health
+
+O endpoint `GET /health` consolida verificações importantes:
+
+- PostgreSQL
+- RabbitMQ
+- dependência do fluxo de auditoria
+- metadados da aplicação
+
+Arquivos principais:
+
+- `health.controller.ts`
+- `health.service.ts`
+
+## Como Rodar o Projeto
+
+### Pré-requisitos
+
+- Node.js 20+
+- npm
+- Docker e Docker Compose
+
+### 1. Instalar dependências
 
 ```bash
-$ npm install
+npm install
 ```
 
-## Compile and run the project
+### 2. Configurar variáveis de ambiente
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cp .env.example .env
 ```
 
-## Run tests
+### 3. Subir infraestrutura local
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+docker compose up -d
 ```
 
-## Deployment
+Isso sobe:
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+- PostgreSQL em `localhost:5432`
+- RabbitMQ em `localhost:5672`
+- painel do RabbitMQ em `http://localhost:15672`
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Credenciais padrão do RabbitMQ:
+
+- usuário: `catalog`
+- senha: `catalog`
+
+### 4. Rodar migrations
 
 ```bash
-$ npm install -g mau
-$ mau deploy
+npm run migration:run
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### 5. Iniciar a aplicação
 
-## Resources
+```bash
+npm run start:dev
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+### 6. Acessar a documentação
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+- API docs: `http://localhost:3000/docs`
+- Health check: `http://localhost:3000/health`
 
-## Support
+## Como Rodar os Testes
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### Testes unitários
 
-## Stay in touch
+```bash
+npm run test
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+Cobrem principalmente regras de domínio, por exemplo:
 
-## License
+- ativação de produto
+- restrições de produto arquivado
+- validação de categoria pai
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+### Testes end-to-end
+
+```bash
+npm run test:e2e
+```
+
+Pré-requisitos para os e2e:
+
+- PostgreSQL rodando
+- migrations já aplicadas
+
+Observações sobre a estratégia e2e atual:
+
+- os testes sobem a aplicação real
+- RabbitMQ é substituído por doubles no contexto de teste, para o e2e focar no fluxo HTTP + banco
+- os dados de e2e usam prefixos próprios, como `E2E_PRODUCT_` e `E2E_CATEGORY_`
+- o teste limpa apenas registros criados pelo próprio fluxo de teste
+
+Essa abordagem foi escolhida para evitar apagar dados arbitrários do banco local.
+
+### Coverage
+
+```bash
+npm run test:cov
+```
+
+## Migrations
+
+Scripts disponíveis:
+
+```bash
+npm run migration:run
+npm run migration:revert
+npm run migration:show
+npm run migration:generate -- src/shared/infrastructure/database/migrations/NomeDaMigration
+```
+
+Migrations atuais:
+
+- `CreateCatalogSchema`
+- `AuditLogSchema`
+
+## Variáveis de Ambiente
+
+As variáveis abaixo estão em .env.example:
+
+### Aplicação
+
+- `NODE_ENV`
+  Ambiente de execução. Exemplo: `development`.
+- `PORT`
+  Porta HTTP da aplicação.
+- `LOG_LEVEL`
+  Nível de log do `nestjs-pino`.
+
+### Banco de dados
+
+- `DATABASE_HOST`
+  Host do PostgreSQL.
+- `DATABASE_PORT`
+  Porta do PostgreSQL.
+- `DATABASE_USER`
+  Usuário do PostgreSQL.
+- `DATABASE_PASSWORD`
+  Senha do PostgreSQL.
+- `DATABASE_NAME`
+  Nome do banco.
+
+### RabbitMQ
+
+- `RABBITMQ_URL`
+  URL de conexão do RabbitMQ.
+- `RABBITMQ_AUDIT_QUEUE`
+  Nome da fila usada para eventos de auditoria.
+- `RABBITMQ_AUDIT_DLQ`
+  Nome da dead-letter queue planejada para auditoria.
+
+Observação:
+
+- `RABBITMQ_AUDIT_DLQ` está previsto no ambiente, mas o fluxo atual ainda não configura explicitamente a DLQ na infraestrutura da fila. Mantive a variável para indicar a direção arquitetural e permitir evolução futura.
+
+## Endpoints Principais
+
+### Categories
+
+- `POST /categories`
+- `GET /categories`
+- `PATCH /categories/:id`
+
+### Products
+
+- `POST /products`
+- `GET /products`
+- `PATCH /products/:id`
+- `POST /products/:id/activate`
+- `POST /products/:id/archive`
+- `POST /products/:id/categories`
+- `DELETE /products/:id/categories/:categoryId`
+- `POST /products/:id/attributes`
+- `PATCH /products/:id/attributes/:key`
+- `DELETE /products/:id/attributes/:key`
+
+## Fluxo Principal para Validação
+
+Um fluxo completo esperado da API é:
+
+1. Criar uma categoria
+2. Criar um produto em status `DRAFT`
+3. Associar a categoria ao produto
+4. Adicionar um atributo dinâmico ao produto
+5. Ativar o produto
+6. Verificar que o produto foi alterado para `ACTIVE`
+7. Verificar que os eventos de auditoria foram publicados e registrados
+
+Esse fluxo resume a regra central do desafio porque exercita:
+
+- consistência das regras de domínio do produto
+- relacionamento entre categorias e produtos
+- suporte a atributos dinâmicos
+- transição controlada de status
+- emissão de eventos de domínio
+- persistência da trilha de auditoria
+
+Na prática, esse mesmo encadeamento norteia o teste end-to-end do projeto.
+
+## Trade-offs Assumidos
+
+Algumas decisões foram intencionais para equilibrar clareza, tempo e maturidade:
+
+- uso de módulos e casos de uso explícitos, mesmo com mais arquivos
+- uso de events + RabbitMQ para auditoria, mesmo sendo mais complexo do que gravar direto em banco
+- uso de migrations em vez de `synchronize`
+- e2e com limpeza seletiva por prefixo, em vez de truncar o banco inteiro
+
+## Resumo Final
+
+Este projeto prioriza:
+
+- domínio explícito
+- separação entre aplicação, domínio e infraestrutura
+- versionamento de schema por migrations
+- mensageria desacoplada para auditoria
+- documentação de API via Swagger
+- testes cobrindo domínio e fluxo fim a fim
+
+As escolhas feitas buscam mostrar uma solução funcional, coerente e organizada, com trade-offs justificados para um desafio técnico de backend.

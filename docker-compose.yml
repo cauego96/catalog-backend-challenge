@@ -1,0 +1,27 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: catalog_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: catalog
+      POSTGRES_PASSWORD: catalog
+      POSTGRES_DB: catalog
+    ports:
+      - "5432:5432"
+    volumes:
+      - catalog_postgres_data:/var/lib/postgresql/data
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: catalog_rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: catalog
+      RABBITMQ_DEFAULT_PASS: catalog
+
+volumes:
+  catalog_postgres_data:
