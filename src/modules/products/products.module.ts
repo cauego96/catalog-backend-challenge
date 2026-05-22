@@ -17,7 +17,7 @@ import { ProductCategoryOrmEntity } from './infrastructure/typeorm/entities/prod
 import { ProductOrmEntity } from './infrastructure/typeorm/entities/product.orm-entity';
 import { ProductTypeormRepository } from './infrastructure/typeorm/repositories/product-typeorm.repository';
 import { ProductsController } from './presentation/controllers/products.controller';
-import { MessagingModule } from 'src/shared/infrastructure/messaging/messaging.module';
+import { MessagingModule } from '../../shared/infrastructure/messaging/messaging.module';
 
 @Module({
   imports: [

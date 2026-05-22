@@ -7,7 +7,7 @@ import {
 import {
   DOMAIN_EVENT_PUBLISHER,
   DomainEventPublisher,
-} from 'src/shared/domain/events/domain-event-publisher';
+} from '../../../../shared/domain/events/domain-event-publisher';
 import { randomUUID } from 'crypto';
 
 @Injectable()
