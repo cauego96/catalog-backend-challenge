@@ -44,9 +44,9 @@ Ao abrir `http://localhost:3000/`, a aplicação redireciona para `http://localh
 O projeto foi organizado por módulos de negócio e por camadas.
 
 - `src/modules/categories`
-  Contém domínio, casos de uso, controller e persistência de categorias.
+  Contém domínio, commands, queries, handlers, controller e persistência de categorias.
 - `src/modules/products`
-  Contém domínio, casos de uso, controller e persistência de produtos.
+  Contém domínio, commands, queries, handlers, controller e persistência de produtos.
 - `src/modules/audit`
   Consome eventos do RabbitMQ e grava logs em `audit_logs`.
 - `src/modules/health`
@@ -77,14 +77,16 @@ Exemplos de regras modeladas no domínio:
 
 Essa decisão foi tomada para evitar que regras fiquem espalhadas entre controller, service e banco.
 
-### 3. Casos de uso como camada de aplicação
+### 3. NestJS CQRS na camada de aplicação
 
-Cada ação relevante da API foi representada por um use case específico, por exemplo:
+A camada de aplicação foi estruturada com `@nestjs/cqrs`, separando operações de escrita em commands e handlers, e operações de leitura em queries e handlers.
 
-- `CreateProductUseCase`
-- `ActivateProductUseCase`
-- `AddCategoryToProductUseCase`
-- `UpdateCategoryUseCase`
+Exemplos:
+
+- `CreateProductCommand` + `CreateProductHandler`
+- `ActivateProductCommand` + `ActivateProductHandler`
+- `AddCategoryToProductCommand` + `AddCategoryToProductHandler`
+- `ListCategoriesQuery` + `ListCategoriesHandler`
 
 Isso deixa o fluxo de negócio explícito, melhora testabilidade e reduz acoplamento entre transporte HTTP e regra de negócio.
 
@@ -117,9 +119,9 @@ Trade-off:
 
 ### 6. Auditoria assíncrona desacoplada do fluxo principal
 
-A gravação da trilha de auditoria não acontece diretamente dentro dos casos de uso de catálogo. Em vez disso:
+A gravação da trilha de auditoria não acontece diretamente dentro dos handlers de catálogo. Em vez disso:
 
-1. o caso de uso publica um evento
+1. Um evento é publicado
 2. o RabbitMQ recebe esse evento em uma fila durável
 3. o módulo `audit` consome a mensagem
 4. o audit log é persistido no PostgreSQL
@@ -384,7 +386,7 @@ Na prática, esse mesmo encadeamento norteia o teste end-to-end do projeto.
 
 Algumas decisões foram intencionais para equilibrar clareza, tempo e maturidade:
 
-- uso de módulos e casos de uso explícitos, mesmo com mais arquivos
+- uso de módulos e de uma camada explícita de commands, queries e handlers, mesmo com mais arquivos
 - uso de events + RabbitMQ para auditoria, mesmo sendo mais complexo do que gravar direto em banco
 - uso de migrations em vez de `synchronize`
 - e2e com limpeza seletiva por prefixo, em vez de truncar o banco inteiro

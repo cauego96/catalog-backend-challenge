@@ -1,16 +1,18 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, NotFoundException } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
 import {
   DOMAIN_EVENT_PUBLISHER,
   DomainEventPublisher,
-} from '../../../../shared/domain/events/domain-event-publisher';
+} from '../../../../../shared/domain/events/domain-event-publisher';
 import {
   PRODUCT_REPOSITORY,
   ProductRepository,
-} from '../../domain/repositories/product.repository';
+} from '../../../domain/repositories/product.repository';
+import { ArchiveProductCommand } from '../../commands/archive-product.command';
 
-@Injectable()
-export class ArchiveProductUseCase {
+@CommandHandler(ArchiveProductCommand)
+export class ArchiveProductHandler implements ICommandHandler<ArchiveProductCommand> {
   constructor(
     @Inject(PRODUCT_REPOSITORY)
     private readonly productRepository: ProductRepository,
@@ -19,8 +21,8 @@ export class ArchiveProductUseCase {
     private readonly eventPublisher: DomainEventPublisher,
   ) {}
 
-  async execute(id: string) {
-    const product = await this.productRepository.findById(id);
+  async execute(command: ArchiveProductCommand) {
+    const product = await this.productRepository.findById(command.id);
 
     if (!product) {
       throw new NotFoundException('Product not found');

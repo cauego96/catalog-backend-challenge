@@ -1,20 +1,22 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, NotFoundException } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
 import {
   DOMAIN_EVENT_PUBLISHER,
   DomainEventPublisher,
-} from '../../../../shared/domain/events/domain-event-publisher';
+} from '../../../../../shared/domain/events/domain-event-publisher';
 import {
   CATEGORY_REPOSITORY,
   CategoryRepository,
-} from '../../../categories/domain/repositories/category.repository';
+} from '../../../../categories/domain/repositories/category.repository';
 import {
   PRODUCT_REPOSITORY,
   ProductRepository,
-} from '../../domain/repositories/product.repository';
+} from '../../../domain/repositories/product.repository';
+import { AddCategoryToProductCommand } from '../../commands/add-category-to-product.command';
 
-@Injectable()
-export class RemoveCategoryFromProductUseCase {
+@CommandHandler(AddCategoryToProductCommand)
+export class AddCategoryToProductHandler implements ICommandHandler<AddCategoryToProductCommand> {
   constructor(
     @Inject(PRODUCT_REPOSITORY)
     private readonly productRepository: ProductRepository,
@@ -26,32 +28,32 @@ export class RemoveCategoryFromProductUseCase {
     private readonly eventPublisher: DomainEventPublisher,
   ) {}
 
-  async execute(id: string, categoryId: string) {
-    const product = await this.productRepository.findById(id);
+  async execute(command: AddCategoryToProductCommand) {
+    const product = await this.productRepository.findById(command.id);
 
     if (!product) {
       throw new NotFoundException('Product not found');
     }
 
-    const category = await this.categoryRepository.findById(categoryId);
+    const category = await this.categoryRepository.findById(command.categoryId);
 
     if (!category) {
       throw new NotFoundException('Category not found');
     }
 
-    product.removeCategory(categoryId);
+    product.addCategory(command.categoryId);
 
     const saved = await this.productRepository.save(product);
 
     await this.eventPublisher.publish({
       eventId: randomUUID(),
-      eventType: 'PRODUCT_CATEGORY_REMOVED',
+      eventType: 'PRODUCT_CATEGORY_ADDED',
       aggregateType: 'Product',
       aggregateId: saved.id,
       occurredAt: new Date().toISOString(),
       payload: {
         productId: saved.id,
-        categoryId,
+        categoryId: command.categoryId,
       },
     });
 

@@ -1,18 +1,20 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Product } from '../../domain/entities/product.entity';
-import {
-  PRODUCT_REPOSITORY,
-  ProductRepository,
-} from '../../domain/repositories/product.repository';
+import { Inject, Logger } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { randomUUID } from 'crypto';
 import {
   DOMAIN_EVENT_PUBLISHER,
   DomainEventPublisher,
-} from '../../../../shared/domain/events/domain-event-publisher';
-import { randomUUID } from 'crypto';
+} from '../../../../../shared/domain/events/domain-event-publisher';
+import { Product } from '../../../domain/entities/product.entity';
+import {
+  PRODUCT_REPOSITORY,
+  ProductRepository,
+} from '../../../domain/repositories/product.repository';
+import { CreateProductCommand } from '../../commands/create-product.command';
 
-@Injectable()
-export class CreateProductUseCase {
-  private readonly logger = new Logger(CreateProductUseCase.name);
+@CommandHandler(CreateProductCommand)
+export class CreateProductHandler implements ICommandHandler<CreateProductCommand> {
+  private readonly logger = new Logger(CreateProductHandler.name);
 
   constructor(
     @Inject(PRODUCT_REPOSITORY)
@@ -22,16 +24,16 @@ export class CreateProductUseCase {
     private readonly eventPublisher: DomainEventPublisher,
   ) {}
 
-  async execute(input: { name: string; description?: string | null }) {
+  async execute(command: CreateProductCommand) {
     this.logger.log({
       action: 'product.create',
       step: 'started',
-      productName: input.name,
+      productName: command.name,
     });
 
     const product = new Product({
-      name: input.name,
-      description: input.description,
+      name: command.name,
+      description: command.description,
     });
 
     const saved = await this.productRepository.save(product);

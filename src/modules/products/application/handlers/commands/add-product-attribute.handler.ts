@@ -1,17 +1,19 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, NotFoundException } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
 import {
   DOMAIN_EVENT_PUBLISHER,
   DomainEventPublisher,
-} from '../../../../shared/domain/events/domain-event-publisher';
-import { ProductAttribute } from '../../domain/entities/product-attribute.entity';
+} from '../../../../../shared/domain/events/domain-event-publisher';
+import { ProductAttribute } from '../../../domain/entities/product-attribute.entity';
 import {
   PRODUCT_REPOSITORY,
   ProductRepository,
-} from '../../domain/repositories/product.repository';
+} from '../../../domain/repositories/product.repository';
+import { AddProductAttributeCommand } from '../../commands/add-product-attribute.command';
 
-@Injectable()
-export class AddProductAttributeUseCase {
+@CommandHandler(AddProductAttributeCommand)
+export class AddProductAttributeHandler implements ICommandHandler<AddProductAttributeCommand> {
   constructor(
     @Inject(PRODUCT_REPOSITORY)
     private readonly productRepository: ProductRepository,
@@ -20,8 +22,8 @@ export class AddProductAttributeUseCase {
     private readonly eventPublisher: DomainEventPublisher,
   ) {}
 
-  async execute(id: string, input: { key: string; value: string }) {
-    const product = await this.productRepository.findById(id);
+  async execute(command: AddProductAttributeCommand) {
+    const product = await this.productRepository.findById(command.id);
 
     if (!product) {
       throw new NotFoundException('Product not found');
@@ -29,8 +31,8 @@ export class AddProductAttributeUseCase {
 
     product.addAttribute(
       new ProductAttribute({
-        key: input.key,
-        value: input.value,
+        key: command.key,
+        value: command.value,
       }),
     );
 
@@ -44,8 +46,8 @@ export class AddProductAttributeUseCase {
       occurredAt: new Date().toISOString(),
       payload: {
         productId: saved.id,
-        key: input.key,
-        value: input.value,
+        key: command.key,
+        value: command.value,
       },
     });
 
