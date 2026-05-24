@@ -1,16 +1,18 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, NotFoundException } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
 import {
   DOMAIN_EVENT_PUBLISHER,
   DomainEventPublisher,
-} from '../../../../shared/domain/events/domain-event-publisher';
+} from '../../../../../shared/domain/events/domain-event-publisher';
 import {
   PRODUCT_REPOSITORY,
   ProductRepository,
-} from '../../domain/repositories/product.repository';
+} from '../../../domain/repositories/product.repository';
+import { UpdateProductCommand } from '../../commands/update-product.command';
 
-@Injectable()
-export class UpdateProductUseCase {
+@CommandHandler(UpdateProductCommand)
+export class UpdateProductHandler implements ICommandHandler<UpdateProductCommand> {
   constructor(
     @Inject(PRODUCT_REPOSITORY)
     private readonly productRepository: ProductRepository,
@@ -19,11 +21,8 @@ export class UpdateProductUseCase {
     private readonly eventPublisher: DomainEventPublisher,
   ) {}
 
-  async execute(
-    id: string,
-    input: { name?: string; description?: string | null },
-  ) {
-    const product = await this.productRepository.findById(id);
+  async execute(command: UpdateProductCommand) {
+    const product = await this.productRepository.findById(command.id);
 
     if (!product) {
       throw new NotFoundException('Product not found');
@@ -32,7 +31,10 @@ export class UpdateProductUseCase {
     const previousName = product.name;
     const previousDescription = product.description;
 
-    product.updateBasicInfo(input);
+    product.updateBasicInfo({
+      name: command.name,
+      description: command.description,
+    });
 
     const saved = await this.productRepository.save(product);
 

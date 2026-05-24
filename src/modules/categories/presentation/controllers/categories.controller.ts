@@ -8,19 +8,19 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
-import { CreateCategoryUseCase } from '../../application/use-cases/create-category.use-case';
-import { ListCategoriesUseCase } from '../../application/use-cases/list-categories.use-case';
-import { UpdateCategoryUseCase } from '../../application/use-cases/update-category.use-case';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { CreateCategoryCommand } from '../../application/commands/create-category.command';
 import { CreateCategoryDto } from '../../application/dtos/create-category.dto';
 import { UpdateCategoryDto } from '../../application/dtos/update-category.dto';
+import { ListCategoriesQuery } from '../../application/queries/list-categories.query';
+import { UpdateCategoryCommand } from '../../application/commands/update-category.command';
 
 @ApiTags('Categories')
 @Controller('categories')
 export class CategoriesController {
   constructor(
-    private readonly createCategoryUseCase: CreateCategoryUseCase,
-    private readonly updateCategoryUseCase: UpdateCategoryUseCase,
-    private readonly listCategoriesUseCase: ListCategoriesUseCase,
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
   ) {}
 
   @ApiOperation({
@@ -38,7 +38,9 @@ export class CategoriesController {
   })
   @Post()
   create(@Body() body: CreateCategoryDto) {
-    return this.createCategoryUseCase.execute(body);
+    return this.commandBus.execute(
+      new CreateCategoryCommand(body.name, body.parentId),
+    );
   }
 
   @ApiOperation({
@@ -50,7 +52,7 @@ export class CategoriesController {
   })
   @Get()
   findAll() {
-    return this.listCategoriesUseCase.execute();
+    return this.queryBus.execute(new ListCategoriesQuery());
   }
 
   @ApiOperation({
@@ -72,6 +74,8 @@ export class CategoriesController {
   })
   @Patch(':id')
   update(@Param('id') id: string, @Body() body: UpdateCategoryDto) {
-    return this.updateCategoryUseCase.execute(id, body);
+    return this.commandBus.execute(
+      new UpdateCategoryCommand(id, body.name, body.parentId),
+    );
   }
 }
